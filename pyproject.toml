@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools >= 64.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rubix-py"
+version = "0.1.0"
+description = "Rubix Client SDK for Python"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Arnab Ghose", email = "arnab.g@rubix.net" }
+]
+maintainers = [
+    { name = "Arnab Ghose", email = "arnab.g@rubix.net" }
+]
+keywords = ["blockchain", "web3", "sdk", "cryptography", "nft"]
+dependencies = [
+    "requests>=2.31.0",
+    "ecdsa>=0.19.1",
+    "bip32utils>=0.3.post4",
+    "mnemonic>=0.21",
+    "ECPy>=1.2.5",
+    "py-cid>=0.3.1"
+]
+
+[project.urls]
+Homepage = "https://github.com/rubixchain/rubix-sdk-py"
+Repository = "https://github.com/rubixchain/rubix-sdk-py"
