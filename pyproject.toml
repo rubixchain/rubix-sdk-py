@@ -27,3 +27,4 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/rubixchain/rubix-sdk-py"
 Repository = "https://github.com/rubixchain/rubix-sdk-py"
+"Bug Tracker" = "https://github.com/rubixchain/rubix-sdk-py/issues"
