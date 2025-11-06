@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Rubix Client SDK for Python"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+readme = "docs/readme.rst"
 authors = [
     { name = "Arnab Ghose", email = "arnab.g@rubix.net" }
 ]
