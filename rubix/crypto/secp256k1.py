@@ -94,4 +94,7 @@ class Secp256k1Keypair:
         pub_key = priv_key.get_public_key()
         signer = ECDSA()
         
-        return signer.verify(message, signature, pub_key)
+        try:
+            return signer.verify(message, signature, pub_key)
+        except Exception:
+            return False
