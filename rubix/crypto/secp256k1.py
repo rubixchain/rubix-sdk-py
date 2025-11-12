@@ -2,8 +2,8 @@ import bip32utils
 import hashlib
 import base64
 
-from ecpy.curves import Curve, Point
-from ecpy.keys import ECPrivateKey, ECPublicKey
+from ecpy.curves import Curve
+from ecpy.keys import ECPrivateKey
 from ecpy.ecdsa import ECDSA
 from ecdsa import SigningKey, SECP256k1, util
 
