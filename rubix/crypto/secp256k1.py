@@ -66,7 +66,7 @@ class Secp256k1Keypair:
             message (bytes): The message to sign.
 
         Returns:
-            str: The hexadecimal signature.
+            bytes: The generated signature in bytes.
         """
         cv = Curve.get_curve('secp256k1')
         pv_key = ECPrivateKey(int(self.__private_key, 16), cv)
