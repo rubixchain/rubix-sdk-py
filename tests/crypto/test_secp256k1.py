@@ -32,19 +32,18 @@ def test_secp256k1_verify_valid_message():
     private_key_hex = "1e99423a4edf5c3d2e8f6b8c3f4e5d6c7b8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
     private_key_bytes = bytes.fromhex(private_key_hex)
     
-    message_1 = b"Test message for signing"
-    message_2 = b"Test message for signing"
+    message = b"Test message for signing"
 
     keypair = Secp256k1Keypair.from_private_key(private_key_bytes)
-    signature = keypair.sign(message_1)
+    signature = keypair.sign(message)
     assert isinstance(signature, bytes)
     
-    is_valid = keypair.verify(message_2, signature)
+    is_valid = keypair.verify(message, signature)
     assert is_valid is True
 
 def test_secp256k1_verify_invalid_message():
     """Test signing and verifying a message using Secp256k1 keypair where both messages
-    used for signing and verifying are the different."""
+    used for signing and verifying are different."""
 
     private_key_hex = "1e99423a4edf5c3d2e8f6b8c3f4e5d6c7b8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
     private_key_bytes = bytes.fromhex(private_key_hex)
