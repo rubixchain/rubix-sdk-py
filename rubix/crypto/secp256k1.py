@@ -2,8 +2,8 @@ import bip32utils
 import hashlib
 import base64
 
-from ecpy.curves import Curve
-from ecpy.keys import ECPrivateKey
+from ecpy.curves import Curve, Point
+from ecpy.keys import ECPrivateKey, ECPublicKey
 from ecpy.ecdsa import ECDSA
 from ecdsa import SigningKey, SECP256k1, util
 
@@ -60,7 +60,7 @@ class Secp256k1Keypair:
         return self.__public_key
     
     def sign(self, message: bytes) -> bytes:
-        """Signs a message using the private key.
+        """Signs a message using secp256k1 private key.
 
         Args:
             message (bytes): The message to sign.
@@ -77,3 +77,21 @@ class Secp256k1Keypair:
             raise ValueError("Failed to sign the message.")
         
         return sig
+
+    def verify(self, message: bytes, signature: bytes) -> bool:
+        """Verifies secp256k1 signature.
+
+        Args:
+            message (bytes): The original message that was signed.
+            signature (bytes): The signature to verify.
+
+        Returns:
+            bool: True if signature is valid, False otherwise.
+        """
+        cv = Curve.get_curve('secp256k1')
+        priv_key = ECPrivateKey(int(self.__private_key, 16), cv)
+
+        pub_key = priv_key.get_public_key()
+        signer = ECDSA()
+        
+        return signer.verify(message, signature, pub_key)
