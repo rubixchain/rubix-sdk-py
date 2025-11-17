@@ -136,3 +136,44 @@ def create_did(keypair: Secp256k1Keypair, rubixNodeBaseUrl: str) -> None:
 
     return user_did
 
+def online_signature_verify(rubixNodeBaseUrl: str, did: str, message: bytes, signature: bytes) -> bool:
+    """
+    Verifies a signature using Rubix node's online verification service.
+    
+    Args:
+        rubixNodeBaseUrl (str): Base URL of the Rubix node.
+        did (str): The DID of the signer.
+        message (bytes): The original message that was signed.
+        signature (bytes): The signature to verify.
+        
+    Returns:
+        bool: True if signature is valid, False otherwise.
+    """
+
+    verify_signature_url = urljoin(rubixNodeBaseUrl, "/api/verify-signature")
+
+    verify_signature_body = {
+        "signer_did": did,
+        "signed_msg": message.decode('utf-8'),
+        "signature": signature.hex()
+    }
+
+    try:
+        response = requests.get(
+            verify_signature_url,
+            params=verify_signature_body,
+            timeout=300
+        )
+
+        response.raise_for_status() 
+        
+        response_body = response.json()
+        return response_body.get("status", False)
+    except requests.exceptions.Timeout:
+        raise signatureResponseError("Request to Rubix node timed out")
+    except requests.exceptions.ConnectionError:
+        raise signatureResponseError(f"Failed to connect to Rubix node at {rubixNodeBaseUrl}")
+    except requests.exceptions.HTTPError as e:
+        raise signatureResponseError(f"HTTP error from Rubix node: {e}")
+    except requests.exceptions.RequestException as e:
+        raise signatureResponseError(f"Request failed: {e}")
