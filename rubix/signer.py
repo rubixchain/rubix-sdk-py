@@ -1,12 +1,10 @@
 import base64
 import os
-from urllib.parse import urljoin
 
 from .client import RubixClient
 from .crypto.bip39 import generate_bip39_mnemonic, get_seed_from_mnemonic
 from .crypto.secp256k1 import Secp256k1Keypair
 from .did import create_did
-from .models.result import Response
 
 class Signer:
     """
