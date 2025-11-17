@@ -22,7 +22,8 @@ dependencies = [
     "bip32utils>=0.3.post4",
     "mnemonic>=0.21",
     "ECPy>=1.2.5",
-    "py-cid>=0.3.1"
+    "py-cid>=0.3.1",
+    "coincurve>=21.0.0"
 ]
 
 [project.urls]
