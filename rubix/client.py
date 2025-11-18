@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urljoin
 
 class RubixClient:
-    def __init__(self, node_url: str, timeout: int = 300):
+    def __init__(self, node_url: str = "http://localhost:20000", timeout: int = 300):
         """
         Initialize Rubix client.
         
