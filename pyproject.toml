@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rubix-py"
-version = "0.3.0"
+version = "0.4.0"
 description = "Rubix Client SDK for Python"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -23,7 +23,8 @@ dependencies = [
     "mnemonic>=0.21",
     "ECPy>=1.2.5",
     "py-cid>=0.3.1",
-    "coincurve>=21.0.0"
+    "coincurve>=21.0.0",
+    "cryptography>=45.0.7",
 ]
 
 [project.urls]

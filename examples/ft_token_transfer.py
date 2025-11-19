@@ -7,7 +7,8 @@ def perform_ft_token_transfer():
 
     signer = Signer(
         rubixClient=client,
-        mnemonic="<Enter 24-word long BIP-39 mnemonic>"
+        mnemonic="<Enter 24-word long BIP-39 mnemonic>",
+        alias="nero"
     )
 
     print("Signer DID: ", signer.did)

@@ -57,4 +57,3 @@ def test_secp256k1_verify_invalid_message():
 
     is_valid = secp256k1_verify(bytes.fromhex(keypair.public_key), message_2, signature)
     assert is_valid is False
-
