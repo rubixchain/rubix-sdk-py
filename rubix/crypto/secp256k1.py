@@ -112,6 +112,11 @@ class Secp256k1Keypair:
         """Returns the public key in hexadecimal format."""
         return self.__public_key
     
+    @property
+    def private_key(self) -> str:
+        """Returns the private key in hexadecimal format."""
+        return self.__private_key
+    
     def sign(self, message: bytes) -> bytes:
         """Signs a message using secp256k1 private key.
 

@@ -1,44 +1,98 @@
 import base64
 import os
 
+from pathlib import Path
 from .client import RubixClient
 from .crypto.bip39 import generate_bip39_mnemonic, get_seed_from_mnemonic
 from .crypto.secp256k1 import Secp256k1Keypair
 from .did import create_did
+from .crypto.account import save_account_to_file, load_account_from_file
+
+CONFIG_ACCOUNTS_DIR = "account"
 
 class Signer:
     """
-    Singer provides abstraction for user keys management 
+    Singer provides abstraction for user keys management
     """
-    def __init__(self, rubixClient: RubixClient, mnemonic: str = ""):
+    def __init__(self, rubixClient: RubixClient, alias: str, mnemonic: str = "", config_path: str = "",
+                 passphrase: str = "mypassword"):
+        """
+        Initializes Signer instance.
+
+        Args:
+            rubixClient (RubixClient): An instance of RubixClient for API interactions.
+            alias (str): Alias for Rubix Account.
+            mnemonic (str, optional): 24-word mnemonic phrase for key generation or import. Defaults to "".
+            config_path (str, optional): SDK config path. Defaults to "" 
+                        and internally is set to <HOME_DIR>/.rubix_sdk.
+            passphrase (str, optional): Passphrase for encrypting/decrypting the private key. 
+                        Defaults to "mypassword". It is HIGHLY RECOMMENDED to provide a passphrase
+        """
+        # Set config path
+        self.__config_path = ""
+        if config_path == "":
+            home_dir = Path.home()
+            default_config_path =  os.path.join(home_dir, ".rubix_sdk")
+            self.__config_path = default_config_path
+        else:
+            self.__config_path = config_path
+
         # Set Rubix Client
         if rubixClient is None:
             raise ValueError("RubixClient instance is required")
-        
         self.__client: RubixClient = rubixClient
 
         # Set or generate Mnemonic
         self.__mnemonic = ""
-
         if mnemonic == "":
             mnemonic_str = generate_bip39_mnemonic()
             if mnemonic_str is None or mnemonic_str.strip() == "":
-                raise ValueError("Failed to generate mnemonic phrase.")
-            
+                raise ValueError("Failed to generate mnemonic phrase.")           
             self.__mnemonic = mnemonic_str
         else:
-            self.__mnemonic = mnemonic    
+            self.__mnemonic = mnemonic
 
-        # Get the secp256k1 keypair from mnemonic
-        seed = get_seed_from_mnemonic(self.__mnemonic)
-        self.__keypair = Secp256k1Keypair.from_mnemonic_seed(seed)
-
-        did = create_did(self.__keypair, self.__client.node_url)
-        if did is None or did.strip() == "":
-            raise ValueError("Failed to create DID from mnemonic seed.")
+        # Check if alias has been provided for their account
+        if alias == "":
+            raise ValueError("alias must be provided to initiate Signer")
         
-        self.did = did
-        self.quorum_type = 2
+        complete_account_dir = os.path.join(self.__config_path, CONFIG_ACCOUNTS_DIR)
+        
+        # If the alias directory doesn't exists, create it with keypair. The keypair
+        # could either come from a mnemonic or be newly generated.
+        complete_key_path = os.path.join(complete_account_dir, alias)
+        if not os.path.exists(complete_key_path):
+            # Get the secp256k1 keypair from mnemonic
+            seed = get_seed_from_mnemonic(self.__mnemonic)
+            self.__keypair = Secp256k1Keypair.from_mnemonic_seed(seed)
+
+            # Request DID creation from Rubix node
+            created_did = create_did(self.__keypair, self.__client.node_url)
+            if created_did is None or created_did.strip() == "":
+                raise ValueError("Failed to create DID from mnemonic seed.")
+            
+            self.did = created_did
+            self.quorum_type = 2
+            
+            # Save keys to config file
+            save_account_to_file(
+                account_dir=complete_account_dir,
+                public_key=bytes.fromhex(self.__keypair.public_key),
+                private_key=bytes.fromhex(self.__keypair.private_key),
+                did=self.did,
+                alias=alias,
+                passphrase=passphrase
+            )
+        else:
+            # Load keys from config file
+            rubixAcccount = load_account_from_file(
+                account_dir=complete_account_dir,
+                alias=alias,
+                passphrase=passphrase
+            )
+            self.__keypair = rubixAcccount.keypair
+            self.did = rubixAcccount.did
+            self.quorum_type = 2
 
     def __quorum_type(self) -> int:
         """Returns the quorum type for transaction"""

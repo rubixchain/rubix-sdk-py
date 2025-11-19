@@ -8,7 +8,8 @@ def sign_and_verify_arbitrary_data(data: bytes):
 
     signer = Signer(
         rubixClient=client,
-        mnemonic="<Enter 24-word long BIP-39 mnemonic>"
+        mnemonic="<Enter 24-word long BIP-39 mnemonic>",
+        alias="nero"
     )
 
     print("Public Key (hex): ", signer.get_keypair().public_key)
