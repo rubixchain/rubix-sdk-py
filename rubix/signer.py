@@ -26,7 +26,7 @@ class Signer:
             config_path (str, optional): SDK config path. Defaults to "" 
                         and internally is set to <HOME_DIR>/.rubix_sdk.
             passphrase (str, optional): Passphrase for encrypting/decrypting the private key. 
-                        Defaults to "mypassword".
+                        Defaults to "mypassword". It is HIGHLY RECOMMENDED to provide a passphrase
         """
         # Set config path
         self.__config_path = ""
