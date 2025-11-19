@@ -42,16 +42,6 @@ class Signer:
             raise ValueError("RubixClient instance is required")
         self.__client: RubixClient = rubixClient
 
-        # Set or generate Mnemonic
-        self.__mnemonic = ""
-        if mnemonic == "":
-            mnemonic_str = generate_bip39_mnemonic()
-            if mnemonic_str is None or mnemonic_str.strip() == "":
-                raise ValueError("Failed to generate mnemonic phrase.")           
-            self.__mnemonic = mnemonic_str
-        else:
-            self.__mnemonic = mnemonic
-
         # Check if alias has been provided for their account
         if alias == "":
             raise ValueError("alias must be provided to initiate Signer")
@@ -63,6 +53,14 @@ class Signer:
         complete_key_path = os.path.join(complete_account_dir, alias)
         if not os.path.exists(complete_key_path):
             # Get the secp256k1 keypair from mnemonic
+            if mnemonic == "":
+                mnemonic_str = generate_bip39_mnemonic()
+                if mnemonic_str is None or mnemonic_str.strip() == "":
+                    raise ValueError("Failed to generate mnemonic phrase.")           
+                self.__mnemonic = mnemonic_str
+            else:
+                self.__mnemonic = mnemonic
+
             seed = get_seed_from_mnemonic(self.__mnemonic)
             self.__keypair = Secp256k1Keypair.from_mnemonic_seed(seed)
 
@@ -93,6 +91,7 @@ class Signer:
             self.__keypair = rubixAcccount.keypair
             self.did = rubixAcccount.did
             self.quorum_type = 2
+            self.__mnemonic = ""
 
     def __quorum_type(self) -> int:
         """Returns the quorum type for transaction"""
