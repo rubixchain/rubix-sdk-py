@@ -38,13 +38,24 @@ Let's have a look at a simple example of fetching RBT balance and transferring t
    # and optionally providing timeout in seconds
    client = RubixClient(node_url="http://localhost:20000", timeout=300)
 
-   # Define the Signer
-   # If you already have a BIP-39 24-word mnemonic, you can pass it to the Signer
-   # Else, a random mnemonic will be used
+   # The Singer class takes two mandatory inputs:
+   # - rubixClient: Rubix Client instance
+   # - alias: Alias give to the account holding the cryptographic keypair. It can therefore
+   # be used everytime user wants to refer to the same keypair present in SDK config. If the
+   # keypair files are not present, it will be created. The keypair values will then depend on
+   # whether user passes a mnemonic or not 
+   #
+   # Optional Arguments:
+   # - mnemonic: Account can be recovered by passing a 24-word BIP-39 mnemonic. If not passed,
+   # a random mnemonic is generated.
+   # - config_path: Directory where files associated with SDK such as keypairs will be stored
    signer = Signer(
-       rubixClient=client,
-       mnemonic="<Enter 24-word long BIP-39 mnemonic>"  # This can be left empty
-   )
+        rubixClient=client,
+        alias="nick",
+        mnemonic="<Enter 24-word long BIP-39 mnemonic>",
+        config_path="<Config Path for SDK dir>"
+    )
+
 
    # Internally, a call is made to Rubix Node to create and register your DID
    user_did = signer.did
