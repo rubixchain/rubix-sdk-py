@@ -7,6 +7,7 @@ from .crypto.bip39 import generate_bip39_mnemonic, get_seed_from_mnemonic
 from .crypto.secp256k1 import Secp256k1Keypair
 from .did import create_did
 from .crypto.account import save_account_to_file, load_account_from_file
+from .utils.validate import validate_asset_address
 
 CONFIG_ACCOUNTS_DIR = "account"
 
@@ -451,18 +452,20 @@ class Signer:
         # Return the final response
         return tx_response
 
-    def deploy_nft(self, artifact_file: str, metadata_file: str, nft_data: str, nft_value: float,
-                   nft_metadata_info: str = "", nft_file_name: str = ""):
+    def deploy_nft(self, nft_data: str, nft_value: float, artifact_file: str = "", metadata_file: str = "",
+                   nft_metadata_info: str = "", nft_file_name: str = "", nft_id: str = ""):
         """
         Deploys an NFT
 
         Args:
-            artifact_file (str): Path to the artifact file.
-            metadata_file (str): (To be Deprecated) Path to the metadata file.
+            artifact_file (str, optional): Path to the artifact file.
+            metadata_file (str, optional): (To be Deprecated) Path to the metadata file.
             nft_data (str): Arbitrary data for the NFT.
             nft_value (float): The value of the NFT.
             nft_metadata_info (str, optional): Additional metadata information for the NFT. Defaults to "".
             nft_file_name (str, optional): Name of the NFT file. Defaults to "".
+            nft_id (str, optional): Pre-computed IPFS CID v0. If this is passed, then `metadata_file` and
+                           and `artifact_file` are ignored
 
         Returns:
             Transaction response from the Rubix node.
@@ -471,12 +474,29 @@ class Signer:
             Exception: If the NFT deployment fails.
         """
         deployer_did = self.did
+
+        # Either nft_id or both artifact_file and metadata_file should be passed.
+        # Passing all of them or none of them would result in an error
+        if nft_id != "" and artifact_file != "" and metadata_file != "":
+            raise AttributeError("values for `nft_id`, `artifact_file` and `metadata_file` have been passed. " \
+            " Either pass `nft_id` or both `artifact_file` and `metadata_file`")
         
-        nft_address = self.__generate_nft_address(
-            user_did=deployer_did,
-            artifact_file=artifact_file,
-            metadata_file=metadata_file
-        )
+        if nft_id == "" and artifact_file == "" and metadata_file == "":
+            raise AttributeError("`nft_id`, `artifact_file` and `metadata_file` are empty. " \
+            " Either pass `nft_id` or both `artifact_file` and `metadata_file`")
+
+        if nft_id == "":
+            nft_address = self.__generate_nft_address(
+                user_did=deployer_did,
+                artifact_file=artifact_file,
+                metadata_file=metadata_file
+            )
+        else:
+            # validate nft_id
+            if not validate_asset_address(nft_id):
+                raise ValueError(f"nft_id passed is not in a valid format, value: {nft_id}")
+
+            nft_address = nft_id
 
         tx_body = {
             "did": deployer_did,
