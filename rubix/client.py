@@ -3,17 +3,24 @@ from typing import Dict, Any, Optional
 from urllib.parse import urljoin
 
 class RubixClient:
-    def __init__(self, node_url: str = "http://localhost:20000", timeout: int = 300):
+    def __init__(
+            self, 
+            node_url: str = "http://localhost:20000", 
+            timeout: int = 300,
+            api_key: Optional[str] = None
+        ):
         """
         Initialize Rubix client.
         
         Args:
             node_url: Base URL of the Rubix node
             timeout: Request timeout in seconds (default: 300)
+            api_key (str, Optional): API Key passed in request header
         """
         
         self.node_url = node_url.rstrip('/')  # Remove trailing slash
         self._timeout = timeout
+        self._api_key = api_key
     
     def _make_get_request(
         self,
@@ -85,12 +92,18 @@ class RubixClient:
         # Build full URL
         url = urljoin(self.node_url, endpoint)
         
+        # Add headers
+        headers: Dict[str, str] = {}
+        if self._api_key:
+            headers["X-API-Key"] = self._api_key
+
         try:
             response = requests.post(
                 url,
                 json=json_data,
                 params=params,
-                timeout=self._timeout
+                timeout=self._timeout,
+                headers=headers
             )
             
             # Raise for HTTP errors (4xx, 5xx)
@@ -138,14 +151,20 @@ class RubixClient:
         """
         # Build full URL
         url = urljoin(self.node_url, endpoint)
-        
+
+        # Add Headers
+        headers: Dict[str, str] = {}
+        if self._api_key:
+            headers["X-API-Key"] = self._api_key
+
         try:
             response = requests.post(
                 url,
                 files=files,
                 data=data,
                 params=params,
-                timeout=self._timeout
+                timeout=self._timeout,
+                headers=headers
             )
             
             # Raise for HTTP errors (4xx, 5xx)
