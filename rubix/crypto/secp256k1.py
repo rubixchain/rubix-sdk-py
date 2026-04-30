@@ -103,7 +103,7 @@ class Secp256k1Keypair:
             raise ValueError("Failed to derive public key from private key.")
         
     
-        public_key_hex = public_key.to_string("compressed").hex()
+        public_key_hex = public_key.to_string("uncompressed").hex()
 
         return Secp256k1Keypair(private_key_hex, public_key_hex)
 

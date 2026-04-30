@@ -8,6 +8,7 @@ from .crypto.secp256k1 import Secp256k1Keypair
 from .did import create_did
 from .crypto.account import save_account_to_file, load_account_from_file
 from .utils.validate import validate_asset_address
+from .models.tx import TransactionRequest, TransactionTokenDetails, SmartContractInfo, FTInfo, NFTInfo
 
 CONFIG_ACCOUNTS_DIR = "account"
 
@@ -113,25 +114,22 @@ class Signer:
 
         signature_response_body = {
             "id": id,
-            "Signature": {
-                "Signature": list(map(int, signature_bytes))
-            },
-            "mode": 4
+            "signature": base64.b64encode(signature_bytes).decode("utf-8")
         }
 
         response = self.__client._make_post_request(
-            "/api/signature-response", 
+            "/rubix/v1/signature",
             signature_response_body
         )
 
-        if response["result"] is None or type(response["result"]) is str:
+        if response["result"] is None or type(response["result"]["transactionID"]) is str:
             return response
         else:
             new_message_hash = base64.b64decode(response["result"]["hash"])
             new_request_id = response["result"]["id"]
             return self.__signature_response(new_request_id, new_message_hash)
 
-    def __generate_smart_contract_address(self, user_did: str, wasm_file: str, code_file: str, schema_file: str) -> str:
+    def __generate_smart_contract_address(self, user_did: str, wasm_file: str, code_file: str) -> str:
         """
         Generates smart contract address by uploading necessary files to Rubix node.
 
@@ -139,8 +137,7 @@ class Signer:
             user_did: The DID of the user deploying the smart contract.
             wasm_file: Path to the WASM file.
             code_file: Path to the code file.
-            schema_file: (To be Deprecated) Path to the schema file.
-            
+
         Returns:
             str: Smart contract address
         
@@ -154,14 +151,10 @@ class Signer:
         if not os.path.exists(code_file):
             raise FileNotFoundError(f"Code file not found: {code_file}")
         
-        if not os.path.exists(schema_file):
-            raise FileNotFoundError(f"Schema file not found: {schema_file}")
-        
-        with open(wasm_file, "rb") as wasm_f, open(code_file, "rb") as code_f, open(schema_file, "rb") as schema_f:
+        with open(wasm_file, "rb") as wasm_f, open(code_file, "rb") as code_f:
             files = {
                 "binaryCodePath": (os.path.basename(wasm_file), wasm_f),
                 "rawCodePath": (os.path.basename(code_file), code_f),
-                "schemaFilePath": (os.path.basename(schema_file), schema_f)
             }
 
             data = {
@@ -169,7 +162,7 @@ class Signer:
             }
         
             response = self.__client._make_form_data_request(
-                endpoint="/api/generate-smart-contract",
+                endpoint="/rubix/v1/smart_contracts/generate",
                 files=files,
                 data=data
             )
@@ -215,7 +208,7 @@ class Signer:
             }
 
             response = self.__client._make_form_data_request(
-                endpoint="/api/create-nft",
+                endpoint="/rubix/v1/nfts/generate",
                 files=files,
                 data=data
             )
@@ -236,7 +229,30 @@ class Signer:
         """Returns the Secp256k1 keypair associated with the signer."""
         return self.__keypair
     
-    def send_rbt_tokens(self, receiver_did: str, rbt_amount: float, comment: str = ""):
+    def init_tx(self, request: TransactionRequest):
+        """Initiates a transaction 
+        
+        Args:
+            request (TransactionRequest): The transaction request.
+    
+        Returns:
+            Transaction response from the Rubix node.
+        """
+
+        tx_response = self.__client._make_post_request(
+            "/rubix/v1/tx",
+            json_data=request
+        )
+
+        request_id = tx_response["result"]["id"]
+        request_hash = base64.b64decode(tx_response["result"]["hash"])
+        
+        tx_response = self.__signature_response(request_id, request_hash)
+        
+        # Return the final response
+        return tx_response
+
+    def send_rbt_tokens(self, receiver_did: str, rbt_amount: float, memo: str = ""):
         """Send RBT tokens
 
         Args:
@@ -247,27 +263,16 @@ class Signer:
         Returns:
            Transaction response from the Rubix node.
         """
-        tx_body = {
-            "comment": comment,
-            "receiver": receiver_did,
-            "sender": self.did,
-            "tokenCOunt": rbt_amount,
-            "type": self.__quorum_type()
-        }
+        tx_request = TransactionRequest(
+            initiator=self.did,
+            owner=receiver_did,
+            tokens=TransactionTokenDetails(
+                rbt=rbt_amount,
+            ),
+            memo=comment
+        ).to_json()
 
-        rbt_transfer_response = self.__client._make_post_request(
-            endpoint="/api/initiate-rbt-transfer",
-            json_data=tx_body
-        )
-
-        if rbt_transfer_response["status"] is False:
-            raise Exception(f"RBT transfer initiation failed: {rbt_transfer_response['message']}")
-
-        # Sign the transaction
-        request_id = rbt_transfer_response["result"]["id"]
-        request_hash = base64.b64decode(rbt_transfer_response["result"]["hash"])
-        
-        tx_response = self.__signature_response(request_id, request_hash)
+        tx_response = self.init_tx(tx_request)
         
         # Return the final response
         return tx_response
@@ -297,7 +302,7 @@ class Signer:
         }
 
         create_ft_response = self.__client._make_post_request(
-            endpoint="/api/create-ft",
+            endpoint="/rubix/v1/fts/mint",
             json_data=tx_body
         )
 
@@ -331,34 +336,27 @@ class Signer:
             Exception: If the FT transfer initiation fails.
         """
 
-        tx_body = {
-            "comment": comment,
-            "creatorDID": ft_creator_did,
-            "ft_count": ft_count,
-            "ft_name": ft_name,
-            "quorum_type": self.__quorum_type(),
-            "receiver": receiver_did,
-            "sender": self.did
-        }
-
-        send_ft_response = self.__client._make_post_request(
-            endpoint="/api/initiate-ft-transfer",
-            json_data=tx_body
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner=receiver_did,
+            tokens=TransactionTokenDetails(
+                ft=[
+                    FTInfo(
+                        ft_name=ft_name,
+                        ft_count=ft_count,
+                        ft_creator_did=ft_creator_did
+                    )
+                ]
+            ),
+            memo=comment
         )
 
-        if send_ft_response["status"] is False:
-            raise Exception(f"FT transfer initiation failed: {send_ft_response['message']}")
-
-        # Sign the transaction
-        request_id = send_ft_response["result"]["id"]
-        request_hash = base64.b64decode(send_ft_response["result"]["hash"])
-
-        tx_response = self.__signature_response(request_id, request_hash)
+        tx_response = self.init_tx(tx_body)
 
         # Return the final response
         return tx_response
     
-    def deploy_smart_contract(self, wasm_file: str, code_file: str, schema_file: str, contract_value: float, comment: str = ""):
+    def deploy_smart_contract(self, wasm_file: str, code_file: str, schema_file: str, contract_value: float, smart_contract_data: str, comment: str = ""):
         """
         Deploys a smart contract
 
@@ -378,27 +376,22 @@ class Signer:
         deployer_did = self.did
         smart_contract_address = self.__generate_smart_contract_address(deployer_did, wasm_file, code_file, schema_file)
 
-        tx_body = {
-            "comment": comment,
-            "deployerAddr": deployer_did,
-            "quorumType": self.__quorum_type(),
-            "rbtAmount": contract_value,
-            "smartContractToken": smart_contract_address
-        }
-
-        deploy_contract_response = self.__client._make_post_request(
-            endpoint="/api/deploy-smart-contract",
-            json_data=tx_body
-        )
-
-        if deploy_contract_response["status"] is False:
-            raise Exception(f"Smart contract deployment failed: {deploy_contract_response['message']}")
-
-        # Sign the transaction
-        request_id = deploy_contract_response["result"]["id"]
-        request_hash = base64.b64decode(deploy_contract_response["result"]["hash"])
-
-        tx_response = self.__signature_response(request_id, request_hash)
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner="",
+            tokens=TransactionTokenDetails(
+                smartContract=[
+                    SmartContractInfo(
+                        smart_contract_id=smart_contract_address,
+                        value=contract_value,
+                        data=smart_contract_data
+                    ).to_json()
+                ]
+            ).to_json(),
+            memo=comment
+        ).to_json()
+        
+        tx_response = self.init_tx(tx_body)
 
         # Return the final response
         if tx_response["status"] is True:
@@ -427,33 +420,27 @@ class Signer:
         """
         executor_did = self.did
         
-        tx_body = {
-            "comment": comment,
-            "executorAddr": executor_did,
-            "quorumType": self.__quorum_type(),
-            "smartContractData": smart_contract_data,
-            "smartContractToken": contract_address
-        }
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner="",
+            tokens=TransactionTokenDetails(
+                smartContract=[
+                    SmartContractInfo(
+                        smart_contract_id=contract_address,
+                        value=smart_contract_data,
+                        data=smart_contract_data
+                    ).to_json()
+                ]
+            ).to_json(),
+            memo=comment
+        ).to_json()
 
-        contract_execute_response = self.__client._make_post_request(
-            endpoint="/api/execute-smart-contract",
-            json_data=tx_body
-        )
-
-        if contract_execute_response["status"] is False:
-            raise Exception(f"Smart contract execution failed: {contract_execute_response['message']}")
-
-        # Sign the transaction
-        request_id = contract_execute_response["result"]["id"]
-        request_hash = base64.b64decode(contract_execute_response["result"]["hash"])
-        
-        tx_response = self.__signature_response(request_id, request_hash)
+        tx_response = self.init_tx(tx_body)
         
         # Return the final response
         return tx_response
 
-    def deploy_nft(self, nft_data: str, nft_value: float, artifact_file: str = "", metadata_file: str = "",
-                   nft_metadata_info: str = "", nft_file_name: str = "", nft_id: str = ""):
+    def deploy_nft(self, nft_data: str, nft_value: float, artifact_file: str = "", metadata_file: str = "", nft_id: str = ""):
         """
         Deploys an NFT
 
@@ -498,29 +485,22 @@ class Signer:
 
             nft_address = nft_id
 
-        tx_body = {
-            "did": deployer_did,
-            "nft": nft_address,
-            "nft_data": nft_data,
-            "nft_file_name": nft_file_name,
-            "nft_metadata": nft_metadata_info,
-            "nft_value": nft_value,
-            "quorum_type": self.__quorum_type()
-        }
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner="",
+            tokens=TransactionTokenDetails(
+                nft=[
+                    NFTInfo(
+                        nft_id=nft_address,
+                        value=nft_value,
+                        data=nft_data
+                    ).to_json()
+                ]
+            ).to_json(),
+            memo=""
+        ).to_json()
 
-        deploy_nft_response = self.__client._make_post_request(
-            endpoint="/api/deploy-nft",
-            json_data=tx_body
-        )
-
-        if deploy_nft_response["status"] is False:
-            raise Exception(f"NFT deployment failed: {deploy_nft_response['message']}")
-
-        # Sign the transaction
-        request_id = deploy_nft_response["result"]["id"]
-        request_hash = base64.b64decode(deploy_nft_response["result"]["hash"])
-
-        tx_response = self.__signature_response(request_id, request_hash)
+        tx_response = self.init_tx(tx_body)
 
         # Return the final response
         if tx_response["status"] is True:
@@ -532,7 +512,7 @@ class Signer:
                 "error": tx_response.get("message", "Unknown error during NFT deployment.")
             }
 
-    def execute_nft(self, nft_address: str, nft_data: str, comment: str = ""):
+    def execute_nft(self, nft_address: str, nft_data: str, nft_value: float = 1, comment: str = ""):
         """
         Executes an NFT
         
@@ -549,28 +529,22 @@ class Signer:
         """
         executor_did = self.did
         
-        tx_body = {
-            "comment": comment,
-            "executor": executor_did,
-            "nft": nft_address,
-            "nft_data": nft_data,
-            "quorum_type": self.__quorum_type(),
-            "receiver": ""
-        }
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner=self.did,
+            tokens=TransactionTokenDetails(
+                nft=[
+                    NFTInfo(
+                        nft_id=nft_address,
+                        value=nft_value,
+                        data=nft_data
+                    ).to_json()
+                ]
+            ).to_json(),
+            memo=comment
+        ).to_json()
 
-        nft_execute_response = self.__client._make_post_request(
-            endpoint="/api/execute-nft",
-            json_data=tx_body
-        )
-
-        if nft_execute_response["status"] is False:
-            raise Exception(f"NFT execution failed: {nft_execute_response['message']}")
-
-        # Sign the transaction
-        request_id = nft_execute_response["result"]["id"]
-        request_hash = base64.b64decode(nft_execute_response["result"]["hash"])
-        
-        tx_response = self.__signature_response(request_id, request_hash)
+        tx_response = self.init_tx(tx_body)
         
         # Return the final response
         return tx_response
@@ -594,29 +568,22 @@ class Signer:
         """
         executor_did = self.did
         
-        tx_body = {
-            "comment": comment,
-            "executor": executor_did,
-            "nft": nft_address,
-            "nft_data": nft_data,
-            "nft_value": nft_value,
-            "quorum_type": self.__quorum_type(),
-            "receiver": receiver_did
-        }
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner=receiver_did,
+            tokens=TransactionTokenDetails(
+                nft=[
+                    NFTInfo(
+                        nft_id=nft_address,
+                        value=nft_value,
+                        data=nft_data
+                    ).to_json()
+                ]
+            ).to_json(),
+            memo=comment
+        ).to_json()
 
-        nft_execute_response = self.__client._make_post_request(
-            endpoint="/api/execute-nft",
-            json_data=tx_body
-        )
-
-        if nft_execute_response["status"] is False:
-            raise Exception(f"NFT ownership transfer failed: {nft_execute_response['message']}")
-
-        # Sign the transaction
-        request_id = nft_execute_response["result"]["id"]
-        request_hash = base64.b64decode(nft_execute_response["result"]["hash"])
-        
-        tx_response = self.__signature_response(request_id, request_hash)
-        
+        tx_response = self.init_tx(tx_body)
+         
         # Return the final response
         return tx_response
