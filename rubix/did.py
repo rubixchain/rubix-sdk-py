@@ -32,7 +32,6 @@ def create_did(keypair: Secp256k1Keypair, rubixNodeBaseUrl: str) -> None:
         raise ValueError("Public key is required to create DID")
 
     try:
-        print(f"PUBBBB KEY: {public_key}")
         response = requests.post(
             request_did_api_url,
             json={"public_key": public_key},
@@ -152,7 +151,7 @@ def online_signature_verify(rubixNodeBaseUrl: str, did: str, message: bytes, sig
     verify_signature_body = {
         "signer_did": did,
         "signed_msg": message.decode('utf-8'),
-        "signature": signature.hex()
+        "signature": base64.b64encode(signature).decode("utf-8")
     }
 
     try:
