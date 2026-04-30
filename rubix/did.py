@@ -147,7 +147,7 @@ def online_signature_verify(rubixNodeBaseUrl: str, did: str, message: bytes, sig
         bool: True if signature is valid, False otherwise.
     """
 
-    verify_signature_url = urljoin(rubixNodeBaseUrl, "/api/verify-signature")
+    verify_signature_url = urljoin(rubixNodeBaseUrl, "/rubix/v1/signature/verify")
 
     verify_signature_body = {
         "signer_did": did,
