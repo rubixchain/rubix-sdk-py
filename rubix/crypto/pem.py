@@ -66,8 +66,8 @@ def secp256k1_pubkey_pem_to_hex(filename: str) -> str:
     except:
         raise ValueError("Invalid base64 inside PEM.")
 
-    if len(pub_bytes) != 33 or pub_bytes[0] not in (2, 3):
-        raise ValueError("Decoded key is not a compressed secp256k1 key.")
+    if len(pub_bytes) != 65:
+        raise ValueError("Decoded key is not a uncompressed secp256k1 key.", len(pub_bytes))
 
     return pub_bytes.hex()
 

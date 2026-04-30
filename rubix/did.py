@@ -25,13 +25,14 @@ def create_did(keypair: Secp256k1Keypair, rubixNodeBaseUrl: str) -> None:
         pass
 
     # Create IPFS based DID 
-    request_did_api_url = urljoin(rubixNodeBaseUrl, "/api/request-did-for-pubkey")
+    request_did_api_url = urljoin(rubixNodeBaseUrl, "rubix/v1/dids/create")
 
     public_key = keypair.public_key
     if public_key is None or public_key.strip() == "":
         raise ValueError("Public key is required to create DID")
 
     try:
+        print(f"PUBBBB KEY: {public_key}")
         response = requests.post(
             request_did_api_url,
             json={"public_key": public_key},
@@ -56,15 +57,14 @@ def create_did(keypair: Secp256k1Keypair, rubixNodeBaseUrl: str) -> None:
     if "status" in response_body and response_body["status"] is False:
         raise DIDCreationError(f"DID creation failed: {response_body['message']}")
 
-    user_did = response_body["did"]
+    user_did = response_body["result"]["did"]
 
     # Register the newly created DID
-    register_did_url = urljoin(rubixNodeBaseUrl, "/api/register-did")
+    register_did_url = urljoin(rubixNodeBaseUrl, f"/rubix/v1/dids/{user_did}/register")
 
     try:
         response = requests.post(
             register_did_url,
-            json={"did": user_did},
             timeout=300
         )
         response.raise_for_status() 
@@ -98,15 +98,12 @@ def create_did(keypair: Secp256k1Keypair, rubixNodeBaseUrl: str) -> None:
     signature_bytes = keypair.sign(message_bytes)
 
     # Send the signature-response request
-    signature_response_url = urljoin(rubixNodeBaseUrl, "/api/signature-response")
+    signature_response_url = urljoin(rubixNodeBaseUrl, "/rubix/v1/signature")
     req_id = response_body["result"]["id"]
 
     signature_response_body = {
         "id": req_id,
-        "Signature": {
-            "Signature": list(map(int, signature_bytes))
-        },
-        "mode": 4
+        "signature": base64.b64encode(signature_bytes).decode("utf-8")
     }
 
     try:

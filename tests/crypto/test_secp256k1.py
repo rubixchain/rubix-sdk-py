@@ -1,4 +1,5 @@
 from rubix.crypto.secp256k1 import Secp256k1Keypair, secp256k1_verify
+import base64
 
 def test_secp256k1_keypair_from_private_key():
     """Test the generation of a Secp256k1 keypair from a private key."""
@@ -38,7 +39,7 @@ def test_secp256k1_verify_valid_message():
     assert isinstance(signature, bytes)
 
     # Verify the signature
-    is_valid = secp256k1_verify(bytes.fromhex(keypair.public_key), message, signature)
+    is_valid = secp256k1_verify(base64.b64decode(keypair.public_key), message, signature)
     assert is_valid is True
 
 def test_secp256k1_verify_invalid_message():
@@ -55,5 +56,5 @@ def test_secp256k1_verify_invalid_message():
     signature = keypair.sign(message_1)
     assert isinstance(signature, bytes)
 
-    is_valid = secp256k1_verify(bytes.fromhex(keypair.public_key), message_2, signature)
+    is_valid = secp256k1_verify(base64.b64decode(keypair.public_key), message_2, signature)
     assert is_valid is False

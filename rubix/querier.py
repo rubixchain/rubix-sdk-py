@@ -26,28 +26,21 @@ class Querier:
         if not validate_did(did):
             raise ValueError(f"Invalid DID: {did}")
 
+
+        endpoint = f"/rubix/v1/dids/{did}/balances/rbt"
         response = self.__client._make_get_request(
-            endpoint="/api/get-account-info",
-            params={
-                "did": did
-            }
+            endpoint=endpoint
         )
 
         if response["status"] is False:
             raise ValueError(f"Failed to get RBT balance: {response['message']}")
 
         try:
-            account_info = response["account_info"][0]
+            rbt_balance = response["result"]
+            return rbt_balance
         except (IndexError, KeyError):
             raise ValueError(f"Invalid account information received, response value: {response}")
-        
-        rbt_balance = account_info.get("rbt_amount", 0)
 
-        return {
-            "did": did,
-            "rbt": rbt_balance
-        }
-    
     def get_ft_balances(self, did: str):
         """
         Retrieves the FT balances for a given DID.
@@ -67,18 +60,16 @@ class Querier:
         if not validate_did(did):
             raise ValueError(f"Invalid DID: {did}")
 
+        endpoint = f"/rubix/v1/dids/{did}/balances/ft"
         response = self.__client._make_get_request(
-            endpoint="/api/get-ft-info-by-did",
-            params={
-                "did": did
-            }
+            endpoint=endpoint
         )
 
         if response["status"] is False:
             raise ValueError(f"Failed to get FT balances: {response['message']}")
 
         try:
-            ft_balance_list = response["ft_info"]
+            ft_balance_list = response["result"]
             return ft_balance_list
         except (IndexError, KeyError):
             raise ValueError(f"Invalid account information received, response value: {response}")
@@ -104,22 +95,15 @@ class Querier:
         if not validate_asset_address(contract_address):
             raise ValueError(f"Invalid smart contract address: {contract_address}")
 
-        response = self.__client._make_post_request(
-            endpoint="/api/get-smart-contract-token-chain-data",
-            json_data={
-                "latest": only_latest_state,
-                "token": contract_address
-            }
+        response = self.__client._make_get_request(
+            endpoint=f"/rubix/v1/smart_contracts/{contract_address}/chain"
         )
 
         if response["status"] is False:
             raise ValueError(f"Failed to get smart contract states: {response['message']}")
 
-        if response["SCTDataReply"] is None:
-            raise ValueError(f"No smart contract states found for address: {contract_address}")
-
         try:
-            smart_contract_states = response["SCTDataReply"]
+            smart_contract_states = response["result"]
             return smart_contract_states
         except KeyError:
             raise ValueError(f"Invalid contract information received, response value: {response}")
@@ -143,22 +127,16 @@ class Querier:
         if not validate_asset_address(nft_address):
             raise ValueError(f"Invalid NFT address: {nft_address}")
 
+        endpoint = f"/rubix/v1/nfts/{nft_address}/chain"
         response = self.__client._make_get_request(
-            endpoint="/api/get-nft-token-chain-data",
-            params={
-                "latest": only_latest_state,
-                "nft": nft_address
-            }
+            endpoint=endpoint
         )
 
         if response["status"] is False:
             raise ValueError(f"Failed to get NFT states: {response['message']}")
 
-        if response["NFTDataReply"] is None:
-            raise ValueError(f"No NFT states found for address: {nft_address}")
-
         try:
-            nft_states= response["NFTDataReply"]
+            nft_states= response["result"]
             return nft_states
         except KeyError:
             raise ValueError(f"Invalid NFT information received, response value: {response}")
@@ -173,14 +151,14 @@ class Querier:
         """
 
         response = self.__client._make_get_request(
-            endpoint="/api/list-nfts"
+            endpoint="/rubix/v1/nfts"
         )
 
         if response["status"] is False:
             raise ValueError(f"Failed to get all NFTs: {response['message']}")
 
         try:
-            nft_list = response["nfts"]
+            nft_list = response["result"]
             return nft_list
         except KeyError:
             raise ValueError(f"Invalid NFT information received, response value: {response}")
@@ -203,17 +181,14 @@ class Querier:
             raise ValueError(f"Invalid DID: {owner_did}")
 
         response = self.__client._make_get_request(
-            endpoint="/api/get-nfts-by-did",
-            params={
-                "did": owner_did
-            }
+            endpoint=f"/rubix/v1/dids/{owner_did}/balances/nft"
         )
 
         if response["status"] is False:
             raise ValueError(f"Failed to get NFTs by owner: {response['message']}")
 
         try:
-            nft_list = response["nfts"]
+            nft_list = response["result"]
             return nft_list
         except KeyError:
             raise ValueError(f"Invalid NFT information received, response value: {response}")

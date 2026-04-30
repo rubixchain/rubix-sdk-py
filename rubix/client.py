@@ -84,7 +84,7 @@ class RubixClient:
             
         Returns:
             JSON response as dictionary
-            
+        
         Raises:
             requests.exceptions.RequestException: If request fails
             ValueError: If response is not valid JSON
