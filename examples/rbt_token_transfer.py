@@ -16,7 +16,7 @@ def transfer_rbt_tokens():
     response = signer.send_rbt_tokens(
         receiver_did="<Enter recipient DID>",
         rbt_amount=0.001,
-        comment="Test RBT Transfer"
+        memo="Test RBT Transfer"
     )
 
     if response["status"] is True:

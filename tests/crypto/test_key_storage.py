@@ -9,7 +9,7 @@ def test_save_and_load_keys():
     tmppath = os.path.abspath(os.path.join(os.getcwd(), 'tests', 'fixtures'))
 
     # Sample keys and DID
-    public_key = bytes.fromhex("03b8edb32c69e16b8d30de87b48aedc4fa09f1643fbaa3e85dbb1932498ea94b0a")
+    public_key = bytes.fromhex("04b8edb32c69e16b8d30de87b48aedc4fa09f1643fbaa3e85dbb1932498ea94b0a7fd48c325a591a08e350b8b1ddfb7416ff72f7d61dad9a33b46658ef77ca6625")
     private_key = bytes.fromhex("e32a09e939376358c37c8780beb632f5cf2fa12c8a53bc77984e60964fd59c78")
     did = "bafybmicbopex4ydytrtremmculwpo7e5p2uvbkuw2ds775xmkcsc5lglai"
     passphrase = "testpassphrase"
@@ -33,7 +33,7 @@ def test_multiple_dir_in_alias_dir():
     tmppath = os.path.abspath(os.path.join(os.getcwd(), 'tests', 'fixtures'))
 
     # Sample keys and DID
-    public_key = bytes.fromhex("03b8edb32c69e16b8d30de87b48aedc4fa09f1643fbaa3e85dbb1932498ea94b0a")
+    public_key = bytes.fromhex("04b8edb32c69e16b8d30de87b48aedc4fa09f1643fbaa3e85dbb1932498ea94b0a7fd48c325a591a08e350b8b1ddfb7416ff72f7d61dad9a33b46658ef77ca6625")
     private_key = bytes.fromhex("e32a09e939376358c37c8780beb632f5cf2fa12c8a53bc77984e60964fd59c78")
     did = "bafybmicbopex4ydytrtremmculwpo7e5p2uvbkuw2ds775xmkcsc5lglai"
     passphrase = "testpassphrase"
