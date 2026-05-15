@@ -19,8 +19,8 @@ def smart_contract_deployment():
     response = signer.deploy_smart_contract(
         wasm_file=os.path.join(os.getcwd(), "wasm_file.wasm"),
         code_file=os.path.join(os.getcwd(), "code_file.rs"),
-        schema_file=os.path.join(os.getcwd(), "schema_file.json"),
         contract_value=0.001,
+        smart_contract_data="",
     )
 
     if response.get("error") is not None:

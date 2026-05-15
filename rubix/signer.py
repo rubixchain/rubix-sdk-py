@@ -14,7 +14,7 @@ CONFIG_ACCOUNTS_DIR = "account"
 
 class Signer:
     """
-    Singer provides abstraction for user keys management
+    Signer provides abstraction for user keys management
     """
     def __init__(self, rubixClient: RubixClient, alias: str, mnemonic: str = "", config_path: str = "",
                  passphrase: str = "mypassword"):
@@ -230,18 +230,18 @@ class Signer:
         return self.__keypair
     
     def init_tx(self, request: TransactionRequest):
-        """Initiates a transaction 
-        
+        """Initiates a transaction
+
         Args:
             request (TransactionRequest): The transaction request.
-    
+
         Returns:
             Transaction response from the Rubix node.
         """
 
         tx_response = self.__client._make_post_request(
             "/rubix/v1/tx",
-            json_data=request
+            json_data=request.to_json()
         )
 
         request_id = tx_response["result"]["id"]
@@ -258,7 +258,7 @@ class Signer:
         Args:
             receiver_did (str): The DID of the receiver.
             rbt_amount (float): The amount of RBT tokens to send.
-            comment (str, optional): An optional comment for the transaction. Defaults to "".
+            memo (str, optional): An optional memo for the transaction. Defaults to "".
 
         Returns:
            Transaction response from the Rubix node.
@@ -269,8 +269,8 @@ class Signer:
             tokens=TransactionTokenDetails(
                 rbt=rbt_amount,
             ),
-            memo=comment
-        ).to_json()
+            memo=memo
+        )
 
         tx_response = self.init_tx(tx_request)
         
@@ -343,8 +343,8 @@ class Signer:
                 ft=[
                     FTInfo(
                         ft_name=ft_name,
-                        ft_count=ft_count,
-                        ft_creator_did=ft_creator_did
+                        number_of_fts=ft_count,
+                        creator_did=ft_creator_did
                     )
                 ]
             ),
@@ -356,14 +356,13 @@ class Signer:
         # Return the final response
         return tx_response
     
-    def deploy_smart_contract(self, wasm_file: str, code_file: str, schema_file: str, contract_value: float, smart_contract_data: str, comment: str = ""):
+    def deploy_smart_contract(self, wasm_file: str, code_file: str, contract_value: float, smart_contract_data: str, comment: str = ""):
         """
         Deploys a smart contract
 
         Args:
             wasm_file (str): Path to the WASM file.
             code_file (str): Path to the code file.
-            schema_file (str): (To be Deprecated) Path to the schema file.
             contract_value (float): Amount of RBT tokens to lock for contract deployment.
             comment (str, optional): An optional comment for the transaction.
 
@@ -374,7 +373,7 @@ class Signer:
             Exception: If the smart contract deployment fails.
         """
         deployer_did = self.did
-        smart_contract_address = self.__generate_smart_contract_address(deployer_did, wasm_file, code_file, schema_file)
+        smart_contract_address = self.__generate_smart_contract_address(deployer_did, wasm_file, code_file)
 
         tx_body = TransactionRequest(
             initiator=self.did,
@@ -385,12 +384,12 @@ class Signer:
                         smart_contract_id=smart_contract_address,
                         value=contract_value,
                         data=smart_contract_data
-                    ).to_json()
+                    )
                 ]
-            ).to_json(),
+            ),
             memo=comment
-        ).to_json()
-        
+        )
+
         tx_response = self.init_tx(tx_body)
 
         # Return the final response
@@ -418,8 +417,6 @@ class Signer:
         Raises:
             Exception: If the smart contract execution fails.
         """
-        executor_did = self.did
-        
         tx_body = TransactionRequest(
             initiator=self.did,
             owner="",
@@ -427,13 +424,13 @@ class Signer:
                 smartContract=[
                     SmartContractInfo(
                         smart_contract_id=contract_address,
-                        value=smart_contract_data,
+                        value=0,
                         data=smart_contract_data
-                    ).to_json()
+                    )
                 ]
-            ).to_json(),
+            ),
             memo=comment
-        ).to_json()
+        )
 
         tx_response = self.init_tx(tx_body)
         
@@ -494,11 +491,11 @@ class Signer:
                         nft_id=nft_address,
                         value=nft_value,
                         data=nft_data
-                    ).to_json()
+                    )
                 ]
-            ).to_json(),
+            ),
             memo=""
-        ).to_json()
+        )
 
         tx_response = self.init_tx(tx_body)
 
@@ -525,10 +522,8 @@ class Signer:
             Transaction response from the Rubix node.
 
         Raises:
-            Exception: If the NFT execution fails.    
+            Exception: If the NFT execution fails.
         """
-        executor_did = self.did
-        
         tx_body = TransactionRequest(
             initiator=self.did,
             owner=self.did,
@@ -538,17 +533,17 @@ class Signer:
                         nft_id=nft_address,
                         value=nft_value,
                         data=nft_data
-                    ).to_json()
+                    )
                 ]
-            ).to_json(),
+            ),
             memo=comment
-        ).to_json()
+        )
 
         tx_response = self.init_tx(tx_body)
-        
+
         # Return the final response
         return tx_response
-    
+
     def create_child_nft(self, parent_nft_address: str, nft_data: str = "", nft_value: float = 0.0, comment: str = ""):
         """
         Creates a child NFT of an existing NFT
@@ -575,18 +570,18 @@ class Signer:
                         value=nft_value,
                         data=nft_data,
                         parentNFTId=parent_nft_address
-                    ).to_json()
+                    )
                 ]
-            ).to_json(),
+            ),
             memo=comment
-        ).to_json()
+        )
 
         tx_response = self.init_tx(tx_body)
         if tx_response["status"] is True:
             try:
                 child_nft_address = tx_response["result"]["mintedNFTChildren"]
-            except KeyError:
-                raise Exception("Child NFT address not found in the transaction response.")
+            except KeyError as e:
+                raise Exception("Child NFT address not found in the transaction response.") from e
             return {
                 "child_nfts": child_nft_address
             }
@@ -612,8 +607,6 @@ class Signer:
         Raises:
             Exception: If the NFT ownership transfer fails.
         """
-        executor_did = self.did
-        
         tx_body = TransactionRequest(
             initiator=self.did,
             owner=receiver_did,
@@ -623,13 +616,13 @@ class Signer:
                         nft_id=nft_address,
                         value=nft_value,
                         data=nft_data
-                    ).to_json()
+                    )
                 ]
-            ).to_json(),
+            ),
             memo=comment
-        ).to_json()
+        )
 
         tx_response = self.init_tx(tx_body)
-         
+
         # Return the final response
         return tx_response

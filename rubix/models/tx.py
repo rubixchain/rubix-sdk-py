@@ -1,9 +1,12 @@
+from typing import Optional
+
+
 class FTInfo:
     def __init__(self, ft_name: str, number_of_fts: float, creator_did: str):
         self.ft_name = ft_name
         self.number_of_fts = number_of_fts
         self.creator_did = creator_did
-    
+
     def to_json(self):
         return {
             "ftName": self.ft_name,
@@ -31,7 +34,7 @@ class SmartContractInfo:
         self.smart_contract_id = smart_contract_id
         self.value = value
         self.data = data
-    
+
     def to_json(self):
         return {
             "smartContractId": self.smart_contract_id,
@@ -40,22 +43,29 @@ class SmartContractInfo:
         }
 
 class TransactionTokenDetails:
-    def __init__(self, rbt: float = None, ft: list[FTInfo] = None, nft: list[NFTInfo] = None, smartContract: list[SmartContractInfo] = None, transferNftOwnership: bool = False):
+    def __init__(
+        self,
+        rbt: Optional[float] = None,
+        ft: Optional[list[FTInfo]] = None,
+        nft: Optional[list[NFTInfo]] = None,
+        smartContract: Optional[list[SmartContractInfo]] = None,
+        transferNftOwnership: bool = False,
+    ):
         if rbt is None and ft is None and nft is None and smartContract is None:
             raise ValueError("At least one of rbt, ft, nft, smartContract must be provided")
-        
+
         self.rbt = rbt
         self.ft = ft
         self.nft = nft
         self.smartContract = smartContract
         self.transferNftOwnership = transferNftOwnership
-    
+
     def to_json(self):
         return {
             "rbt": self.rbt,
-            "ft": [ft for ft in self.ft] if self.ft else [],
-            "nft": [nft for nft in self.nft] if self.nft else [],
-            "smartContract": [smartContract for smartContract in self.smartContract] if self.smartContract else [],
+            "ft": [ft.to_json() for ft in self.ft] if self.ft else [],
+            "nft": [nft.to_json() for nft in self.nft] if self.nft else [],
+            "smartContract": [sc.to_json() for sc in self.smartContract] if self.smartContract else [],
             "transferNftOwnership": self.transferNftOwnership
         }
 
@@ -70,6 +80,6 @@ class TransactionRequest:
         return {
             "initiator": self.initiator,
             "owner": self.owner,
-            "tokens": self.tokens,
+            "tokens": self.tokens.to_json(),
             "memo": self.memo
         }
