@@ -1,5 +1,4 @@
 from rubix.crypto.secp256k1 import Secp256k1Keypair, secp256k1_verify
-import base64
 
 def test_secp256k1_keypair_from_private_key():
     """Test the generation of a Secp256k1 keypair from a private key."""
@@ -11,7 +10,7 @@ def test_secp256k1_keypair_from_private_key():
     assert isinstance(keypair, Secp256k1Keypair)
     assert keypair.public_key is not None
     assert isinstance(keypair.public_key, str)
-    assert len(keypair.public_key) == 66, f"expected compressed public key length of 66 hex characters, got {len(keypair.public_key)}"
+    assert len(keypair.public_key) == 130, f"expected compressed public key length of 130 hex characters, got {len(keypair.public_key)}"
 
 def test_secp256k1_keypair_from_mnemonic_seed():
     """Test the generation of a Secp256k1 keypair from a mnemonic seed."""
@@ -23,7 +22,7 @@ def test_secp256k1_keypair_from_mnemonic_seed():
     assert isinstance(keypair, Secp256k1Keypair)
     assert keypair.public_key is not None
     assert isinstance(keypair.public_key, str)
-    assert len(keypair.public_key) == 66, f"expected compressed public key length of 66 hex characters, got {len(keypair.public_key)}"
+    assert len(keypair.public_key) == 130, f"expected compressed public key length of 130 hex characters, got {len(keypair.public_key)}"
 
 def test_secp256k1_verify_valid_message():
     """Test signing and verifying a message using Secp256k1 keypair where both messages
@@ -39,7 +38,7 @@ def test_secp256k1_verify_valid_message():
     assert isinstance(signature, bytes)
 
     # Verify the signature
-    is_valid = secp256k1_verify(base64.b64decode(keypair.public_key), message, signature)
+    is_valid = secp256k1_verify(bytes.fromhex(keypair.public_key), message, signature)
     assert is_valid is True
 
 def test_secp256k1_verify_invalid_message():
@@ -56,5 +55,5 @@ def test_secp256k1_verify_invalid_message():
     signature = keypair.sign(message_1)
     assert isinstance(signature, bytes)
 
-    is_valid = secp256k1_verify(base64.b64decode(keypair.public_key), message_2, signature)
+    is_valid = secp256k1_verify(bytes.fromhex(keypair.public_key), message_2, signature)
     assert is_valid is False
