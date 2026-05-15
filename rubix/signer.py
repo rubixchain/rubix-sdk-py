@@ -549,6 +549,52 @@ class Signer:
         # Return the final response
         return tx_response
     
+    def create_child_nft(self, parent_nft_address: str, nft_data: str = "", nft_value: float = 0.0, comment: str = ""):
+        """
+        Creates a child NFT of an existing NFT
+
+        Args:
+            parent_nft_address (str): The address of the parent NFT.
+            nft_data (str): Arbitrary data for the child NFT.
+            nft_value (float, optional): The value of the child NFT. Defaults to 0.0.
+            comment (str, optional): An optional comment for the transaction. Defaults to "".
+
+        Returns:
+            Success response with child NFT address if the transaction is successful, otherwise error response.
+
+        Raises:
+            Exception: If the child NFT creation fails.
+        """
+        tx_body = TransactionRequest(
+            initiator=self.did,
+            owner=self.did,
+            tokens=TransactionTokenDetails(
+                nft=[
+                    NFTInfo(
+                        nft_id=parent_nft_address,
+                        value=nft_value,
+                        data=nft_data,
+                        parentNFTId=parent_nft_address
+                    ).to_json()
+                ]
+            ).to_json(),
+            memo=comment
+        ).to_json()
+
+        tx_response = self.init_tx(tx_body)
+        if tx_response["status"] is True:
+            try:
+                child_nft_address = tx_response["result"]["mintedNFTChildren"]
+            except KeyError:
+                raise Exception("Child NFT address not found in the transaction response.")
+            return {
+                "child_nfts": child_nft_address
+            }
+        else:
+            return {
+                "error": tx_response.get("message", "Unknown error during child NFT creation.")
+            }
+
     def transfer_nft(self, nft_address: str, receiver_did: str, nft_value: float, nft_data: str = "", comment: str = ""):
         """
         Transfers NFT ownership to another DID

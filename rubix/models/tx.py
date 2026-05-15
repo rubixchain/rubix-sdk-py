@@ -12,16 +12,18 @@ class FTInfo:
         }
 
 class NFTInfo:
-    def __init__(self, nft_id: str, value: float, data: str):
+    def __init__(self, nft_id: str, value: float, data: str, parentNFTId: str = ""):
         self.nft_id = nft_id
         self.value = value
         self.data = data
+        self.parentNFTId = parentNFTId
 
     def to_json(self):
         return {
             "nftId": self.nft_id,
             "value": self.value,
-            "data": self.data
+            "data": self.data,
+            "parentNFTId": self.parentNFTId
         }
 
 class SmartContractInfo:
