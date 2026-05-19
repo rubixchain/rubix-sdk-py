@@ -122,8 +122,8 @@ class Signer:
             signature_response_body
         )
 
-        if response["result"] is None or type(response["result"]["transactionID"]) is str:
-            return response
+        if response["result"] is None or "transactionID" in response["result"] or response["status"] is False:
+                return response
         else:
             new_message_hash = base64.b64decode(response["result"]["hash"])
             new_request_id = response["result"]["id"]
@@ -243,6 +243,9 @@ class Signer:
             "/rubix/v1/tx",
             json_data=request.to_json()
         )
+
+        if tx_response["status"] is False:
+            return tx_response
 
         request_id = tx_response["result"]["id"]
         request_hash = base64.b64decode(tx_response["result"]["hash"])
@@ -544,7 +547,7 @@ class Signer:
         # Return the final response
         return tx_response
 
-    def create_child_nft(self, parent_nft_address: str, nft_data: str = "", nft_value: float = 0.0, comment: str = ""):
+    def create_child_nft(self, parent_nft_address: str, nft_data: str = "", nft_value: float = 0.0, comment: str = "", child_nft_id: str = ""):
         """
         Creates a child NFT of an existing NFT
 
@@ -553,7 +556,7 @@ class Signer:
             nft_data (str): Arbitrary data for the child NFT.
             nft_value (float, optional): The value of the child NFT. Defaults to 0.0.
             comment (str, optional): An optional comment for the transaction. Defaults to "".
-
+            child_nft_id (str, optional): The ID of the child NFT. Defaults to "".
         Returns:
             Success response with child NFT address if the transaction is successful, otherwise error response.
 
@@ -566,7 +569,7 @@ class Signer:
             tokens=TransactionTokenDetails(
                 nft=[
                     NFTInfo(
-                        nft_id=parent_nft_address,
+                        nft_id=child_nft_id,
                         value=nft_value,
                         data=nft_data,
                         parentNFTId=parent_nft_address

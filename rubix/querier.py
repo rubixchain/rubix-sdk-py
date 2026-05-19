@@ -192,3 +192,64 @@ class Querier:
             return nft_list
         except KeyError:
             raise ValueError(f"Invalid NFT information received, response value: {response}")
+
+    def get_child_nfts(self, parent_nft_address: str):
+        """
+        Retrieves all child NFTs of a given parent NFT.
+        
+        Args:
+            parent_nft_address (str): The address of the parent NFT.
+        
+        Returns:
+            List containing information about child NFTs.
+            Conforms to List of *models.querier.NFTInfo*
+        
+        Raises:
+            ValueError: If the parent NFT address is invalid or if the request fails.
+        """
+        if not validate_asset_address(parent_nft_address):
+            raise ValueError(f"Invalid parent NFT address: {parent_nft_address}")
+
+        response = self.__client._make_get_request(
+            endpoint=f"/rubix/v1/nfts/{parent_nft_address}/children"
+        )
+
+        if response["status"] is False:
+            raise ValueError(f"Failed to get child NFTs: {response['message']}")
+
+        try:
+            child_nft_list = response["result"]
+            return child_nft_list
+        except KeyError:
+            raise ValueError(f"Invalid NFT information received, response value: {response}")
+    
+    def get_parent_nft(self, child_nft_address: str):
+        """
+        Retrieves the parent NFT of a given child NFT.
+        
+        Args:
+            child_nft_address (str): The address of the child NFT.
+        
+        Returns:
+            Information about the parent NFT. Returns an empty string if there is no parent NFT.
+        
+        Raises:
+            ValueError: If the child NFT address is invalid or if the request fails.
+        """
+        if not validate_asset_address(child_nft_address):
+            raise ValueError(f"Invalid child NFT address: {child_nft_address}")
+
+        response = self.__client._make_get_request(
+            endpoint=f"/rubix/v1/nfts/{child_nft_address}/parent"
+        )
+
+        if response["status"] is False:
+            raise ValueError(f"Failed to get parent NFT: {response['message']}")
+
+        try:
+            parent_nft_info = response["result"]  
+            if parent_nft_info is None:
+                return "" 
+            return parent_nft_info
+        except KeyError:
+            raise ValueError(f"Invalid NFT information received, response value: {response}")
