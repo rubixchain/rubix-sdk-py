@@ -47,12 +47,12 @@ class Signer:
         # Check if alias has been provided for their account
         if alias == "":
             raise ValueError("alias must be provided to initiate Signer")
-        
-        complete_account_dir = os.path.join(self.__config_path, CONFIG_ACCOUNTS_DIR)
-        
+
+        self.account_dir = os.path.join(self.__config_path, CONFIG_ACCOUNTS_DIR)
+
         # If the alias directory doesn't exists, create it with keypair. The keypair
         # could either come from a mnemonic or be newly generated.
-        complete_key_path = os.path.join(complete_account_dir, alias)
+        complete_key_path = os.path.join(self.account_dir, alias)
         if not os.path.exists(complete_key_path):
             # Get the secp256k1 keypair from mnemonic
             if mnemonic == "":
@@ -76,7 +76,7 @@ class Signer:
             
             # Save keys to config file
             save_account_to_file(
-                account_dir=complete_account_dir,
+                account_dir=self.account_dir,
                 public_key=bytes.fromhex(self.__keypair.public_key),
                 private_key=bytes.fromhex(self.__keypair.private_key),
                 did=self.did,
@@ -86,7 +86,7 @@ class Signer:
         else:
             # Load keys from config file
             rubixAcccount = load_account_from_file(
-                account_dir=complete_account_dir,
+                account_dir=self.account_dir,
                 alias=alias,
                 passphrase=passphrase
             )

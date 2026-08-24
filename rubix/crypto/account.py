@@ -118,3 +118,43 @@ def load_key_from_file(key_dir: str, passphrase: str = "mypassword") -> Secp256k
         private_key=priv_hex,
         public_key=pub_hex
     )
+
+def load_pub_key_from_file(key_dir: str) -> bytes:
+    """
+    load_pub_key_from_file loads the public key from its PEM file.
+
+    Args:
+        key_dir (str): The path to the Keypair files.
+    
+    Returns:
+        bytes: The loaded public key.
+    """
+
+    if key_dir == "":
+        raise ValueError("Config path must not be empty")
+    
+    if not os.path.exists(key_dir):
+        raise FileNotFoundError(f"Key directory does not exist: {key_dir}")
+
+    pub_key_path = os.path.join(key_dir, "pubKey.pem")
+
+    pub_hex = secp256k1_pubkey_pem_to_hex(pub_key_path)
+
+    return bytes.fromhex(pub_hex)
+
+def save_pub_key_to_file(key_dir: str, public_key: bytes) -> None:
+    """
+    save_pub_key_to_file saves the public key in a configuration file.
+
+    Args:
+        key_dir (str): The path to the configuration file.
+        public_key (bytes): The public key to save.
+    """
+    os.makedirs(key_dir, exist_ok=True)
+
+    if public_key is None or len(public_key) == 0:
+        raise ValueError("Public key must not be empty")
+    if key_dir == "":
+        raise ValueError("Config path must not be empty")
+    
+    secp256k1_pubkey_hex_to_pem(key_dir, public_key)
