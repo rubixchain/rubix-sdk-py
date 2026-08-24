@@ -1,8 +1,10 @@
 import base64
 import requests
+import os
 
 from .crypto.secp256k1 import Secp256k1Keypair
 from urllib.parse import urlparse, urljoin
+from .crypto.account import load_pub_key_from_file, save_pub_key_to_file
 
 class DIDCreationError(Exception):
     """Raised when DID creation fails."""
@@ -173,3 +175,107 @@ def online_signature_verify(rubixNodeBaseUrl: str, did: str, message: bytes, sig
         raise signatureResponseError(f"HTTP error from Rubix node: {e}")
     except requests.exceptions.RequestException as e:
         raise signatureResponseError(f"Request failed: {e}")
+
+def get_public_key_for_did(did: str, rubixNodeBaseUrl: str) -> bytes:
+    """
+    Retrieves the public key associated with a given DID from the Rubix node.
+    
+    Args:
+        did (str): The DID for which to retrieve the public key.
+        rubixNodeBaseUrl (str): Base URL of the Rubix node.
+        
+    Returns:
+        str: The public key associated with the DID.
+    """
+    get_public_key_url = urljoin(rubixNodeBaseUrl, f"/rubix/v1/dids/{did}/public_key")
+
+    try:
+        response = requests.get(
+            get_public_key_url,
+            timeout=300
+        )
+        response.raise_for_status()
+        
+    except requests.exceptions.Timeout:
+        raise DIDCreationError("Request to Rubix node timed out")
+    except requests.exceptions.ConnectionError:
+        raise DIDCreationError(f"Failed to connect to Rubix node at {rubixNodeBaseUrl}")
+    except requests.exceptions.HTTPError as e:
+        raise DIDCreationError(f"HTTP error from Rubix node: {e}")
+    except requests.exceptions.RequestException as e:
+        raise DIDCreationError(f"Request failed: {e}")
+    
+    try:
+        response_body = response.json()
+    except ValueError:
+        raise DIDCreationError("Invalid JSON response from Rubix node")
+    
+    if "status" in response_body and response_body["status"] is False:
+        raise DIDCreationError(f"Failed to retrieve public key: {response_body['message']}")
+
+    pub_key_hex = response_body["result"]["public_key"]
+    if pub_key_hex is None or pub_key_hex.strip() == "":
+        raise DIDCreationError("No public key found for the given DID")
+
+    pub_key_bytes = bytes.fromhex(pub_key_hex)
+    return pub_key_bytes
+
+def fast_signature_verify(
+    rubixNodeBaseUrl: str, 
+    account_dir: str, 
+    did: str, 
+    message: bytes, 
+    signature: bytes
+) -> bool:
+        """
+        Verifies a signature using the public key associated with the DID.
+        If the DID is not found in the local configuration, it fetches the 
+        public key from the Rubix node and saves it for future use.
+
+        The DID value is considered as the alias while creating the directory
+        under accounts directory
+        
+        Args:
+            rubixNodeBaseUrl (str): Base URL of the Rubix node.
+            account_dir (str): Directory where DID-related configuration is stored.
+            did (str): The DID of the signer.
+            message (bytes): The original message that was signed.
+            signature (bytes): The signature to verify.
+
+        Returns:
+            bool: True if signature is valid, False otherwise.
+        """
+
+        from .did import get_public_key_for_did
+
+        # Within accounts dir, scan each alias named folder to see if we find our did
+        did_found = False
+        did_path = ""
+
+        for alias_folder in os.listdir(account_dir):
+            alias_folder_path = os.path.join(account_dir, alias_folder)
+            if os.path.isdir(alias_folder_path):
+                did_folder_path = os.path.join(alias_folder_path, did)
+                if os.path.isdir(did_folder_path):
+                    did_found = True
+                    did_path = did_folder_path
+                    break
+
+        if did_found:
+            if not os.path.exists(did_path):
+                raise FileNotFoundError(f"Public key file not found for DID {did} at {did_path}")
+            public_key = load_pub_key_from_file(did_path)
+
+        else:
+            did_path = os.path.join(account_dir, did, did)
+            
+            # Fetch public key from Rubix node
+            public_key = get_public_key_for_did(did, rubixNodeBaseUrl)
+
+            save_pub_key_to_file(
+                key_dir=did_path,
+                public_key=public_key
+            )
+
+        from .crypto.secp256k1 import secp256k1_verify
+        return secp256k1_verify(public_key, message, signature)
