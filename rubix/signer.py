@@ -583,10 +583,12 @@ class Signer:
         if tx_response["status"] is True:
             try:
                 child_nft_address = tx_response["result"]["mintedNFTChildren"]
+                tx_id = tx_response["result"]["transactionID"]
             except KeyError as e:
                 raise Exception("Child NFT address not found in the transaction response.") from e
             return {
-                "child_nfts": child_nft_address
+                "child_nfts": child_nft_address,
+                "tx_id": tx_id
             }
         else:
             return {
