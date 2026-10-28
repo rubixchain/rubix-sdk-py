@@ -1,6 +1,12 @@
 from .client import RubixClient
 from .utils.validate import validate_did, validate_asset_address
 
+def _latest_state(states):
+    """Keeps only the latest state of a token chain, which the node returns ordered oldest first."""
+    if isinstance(states, list):
+        return states[-1:]
+    return states
+
 class Querier:
     def __init__(self, rubixClient: RubixClient) -> None:
         # Set Rubix Client
@@ -86,7 +92,8 @@ class Querier:
             only_latest_state (bool): Whether to retrieve only the latest state of the Smart Contract.
                                       Default is False.
         Returns:
-            A list containing the smart contract states. 
+            A list containing the smart contract states, oldest first. With `only_latest_state`,
+            the list holds only the latest state.
             Conforms to list of models.querier.SmartContractTokenBlock
 
         Raises:
@@ -104,10 +111,13 @@ class Querier:
 
         try:
             smart_contract_states = response["result"]
-            return smart_contract_states
         except KeyError:
             raise ValueError(f"Invalid contract information received, response value: {response}")
-        
+
+        if only_latest_state:
+            return _latest_state(smart_contract_states)
+        return smart_contract_states
+
     def get_nft_states(self, nft_address: str, only_latest_state: bool = False):
         """
         Retrieves the states of an NFT by its address.
@@ -118,7 +128,8 @@ class Querier:
                                       Default is False.
         
         Returns:
-            List containing the NFT states.
+            List containing the NFT states, oldest first. With `only_latest_state`,
+            the list holds only the latest state.
             Conforms to List of *models.querier.NFTTokenBlock*
         
         Raises:
@@ -137,9 +148,12 @@ class Querier:
 
         try:
             nft_states= response["result"]
-            return nft_states
         except KeyError:
             raise ValueError(f"Invalid NFT information received, response value: {response}")
+
+        if only_latest_state:
+            return _latest_state(nft_states)
+        return nft_states
 
     def get_all_nft(self):
         """

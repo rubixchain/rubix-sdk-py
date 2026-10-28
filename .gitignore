@@ -16,3 +16,5 @@ build/
 htmlcov/
 .tox/
 fixtures/
+# Accounts created by the live tests
+.rubix_sdk_test/
